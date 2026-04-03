@@ -3,445 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тренажёр числа Пи · Бегущая строка</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Courier New', monospace;
-        }
-        body {
-            background: #1e1e2f;
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .container {
-            background: #2d2d3a;
-            border-radius: 2rem;
-            padding: 2rem 2rem 2.5rem;
-            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
-            width: 90%;
-            max-width: 900px;
-        }
-        h1 {
-            text-align: center;
-            color: #ffd966;
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            font-weight: 400;
-            letter-spacing: 2px;
-            font-size: 2rem;
-            text-shadow: 0 0 5px #b8860b;
-        }
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            background: #232332;
-            color: #c0c0d0;
-            padding: 0.8rem 1.5rem;
-            border-radius: 3rem;
-            margin-bottom: 2rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: inset 0 2px 5px #0a0a12;
-        }
-        .stats span {
-            color: #f0e68c;
-        }
-        .pi-view {
-            background: #0f0f17;
-            border-radius: 2.5rem;
-            padding: 1.5rem 1rem;
-            margin-bottom: 2rem;
-            border: 2px solid #4a4a60;
-            box-shadow: 0 0 15px #2a2a3a;
-        }
-        .pi-header {
-            color: #b0b0c0;
-            font-size: 1.1rem;
-            margin-left: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .pi-header span {
-            color: #f4c542;
-            font-weight: bold;
-        }
-        .scroll-container {
-            background: #1a1a26;
-            border-radius: 2rem;
-            padding: 1rem 0.5rem;
-            overflow-x: auto;
-            white-space: nowrap;
-            scroll-behavior: smooth;
-            border: 1px solid #5a5a78;
-            box-shadow: inset 0 0 10px #05050a;
-        }
-        .digits-wrapper {
-            display: inline-block;
-            padding-left: 0.5rem;
-        }
-        .digit {
-            display: inline-block;
-            font-size: 3rem;
-            font-weight: bold;
-            width: 2.2rem;
-            text-align: center;
-            margin: 0 2px;
-            border-radius: 1rem;
-            color: #e0e0ff;
-            background: #2c2c3c;
-            box-shadow: 0 0 0 1px #505070;
-            transition: all 0.1s;
-        }
-        .digit.active {
-            background: #2e7d32;
-            color: white;
-            box-shadow: 0 0 15px #4caf50;
-            transform: scale(1.05);
-        }
-        .digit.error {
-            background: #b71c1c;
-            color: white;
-            box-shadow: 0 0 20px #f44336;
-        }
-        .pi-prefix {
-            display: inline-block;
-            font-size: 3rem;
-            font-weight: bold;
-            color: #b0b0e0;
-            margin-right: 0.5rem;
-            background: #2a2a3c;
-            padding: 0 0.5rem;
-            border-radius: 1.5rem;
-            box-shadow: inset 0 2px 5px #000;
-        }
-        .control {
-            text-align: center;
-        }
-        .reset-btn {
-            background: #3d3d5c;
-            border: none;
-            color: #ffd966;
-            font-size: 1.8rem;
-            padding: 0.6rem 3rem;
-            border-radius: 4rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 5px 0 #1a1a2a, 0 8px 15px #0f0f1a;
-            transition: 0.08s linear;
-            letter-spacing: 2px;
-        }
-        .reset-btn:active {
-            transform: translateY(5px);
-            box-shadow: 0 2px 0 #1a1a2a, 0 5px 12px #0f0f1a;
-        }
-        .hint {
-            color: #a0a0b5;
-            margin-top: 1.5rem;
-            font-size: 1.2rem;
-            background: #252535;
-            display: inline-block;
-            padding: 0.5rem 2rem;
-            border-radius: 3rem;
-        }
-        .game-over-message {
-            font-size: 1.4rem;
-            margin-top: 1rem;
-            font-weight: bold;
-            min-height: 2.5rem;
-            color: #ffb3b3;
-        }
-        .win-message {
-            color: #b3ffb3;
-        }
-        footer {
-            text-align: center;
-            color: #6a6a80;
-            margin-top: 2rem;
-        }
-    </style>
+    <title>Главная — Подпорные стенки</title>
+    <link rel="stylesheet" href="/pages/style.css">
 </head>
 <body>
-<div class="container">
-    <h1>π – бегущая строка</h1>
+    <script src="/scripts/theme.js"></script>
+    <script type="module" defer src="/scripts/layout.js"></script>
+    <script type="module" defer src="/scripts/render/render-home.js"></script>
 
-    <!-- Статистика -->
-    <div class="stats">
-        <div>🔢 Знаков: <span id="counter">0</span> / <span id="totalDigits">200</span></div>
-        <div>⚡ Скорость: <span id="speed">0</span> зн/мин</div>
-        <div>⏱️ Время: <span id="timer">0.0</span> с</div>
+    <div class="app-container">
+        <header></header>
+        <main class="main-content">
+            <div class="page-header">
+                <p class="greeting-sub">Главная</p>
+            </div>
+
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div>
+                    <h1 class="greeting gap-small">Добро пожаловать</h1>
+                    <p class="card-subtitle gap">
+                        Веб-приложение для проектирования подпорных стенок (ПСТ): параметрические сечения, сборка сооружений из стенок,
+                        чертежи в виде вкладок с канвасом, сохранение в браузере (IndexedDB), выгрузка и загрузка файлов, подготовка геометрии для САПР.
+                    </p>
+                </div>
+                <div></div>
+
+            </div>
+
+
+            <div class="grid gap" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <article class="card" id="feature-sections">
+                    <h2 class="card-title gap-small">Сечения</h2>
+                    <p class="card-subtitle gap">
+                        Библиотека типовых сечений стенки. Создание с нуля, из шаблона или импорт файла <code>.data</code>.
+                        Редактор: параметры (формулы от высоты), таблицы точек по осям X/Y, полилинии для плана, фасада и поперечного сечения,
+                        интерактивный предпросмотр (вкладки «Сечение», «План», «Фасад»), блок настроек предпросмотра (смещение, высоты, оси).
+                        Кнопки «Сохранить» и «Скачать» в шапке карточки сечения.
+                    </p>
+                </article>
+
+                <article class="card" id="feature-structures">
+                    <h2 class="card-title gap-small">Сооружения</h2>
+                    <p class="card-subtitle gap">
+                        Модель сооружения как набор стенок с привязками. Таблица стенок, оси плана и бортов/земли по левому и правому фасадам.
+                        Экспорт LISP для переноса осей и продольных профилей в CAD. Просмотр: план, левый и правый фасады.
+                        Создание, шаблоны, импорт <code>.data</code> — по аналогии со списком сечений.
+                    </p>
+                </article>
+
+                <article class="card" id="feature-wall">
+                    <h2 class="card-title gap-small">Стенка в составе сооружения</h2>
+                    <p class="card-subtitle gap">
+                        Страница отдельной стенки (переход из модели сооружения): таблица параметров фрагмента, вкладки чертежа «План» и «Фасад»,
+                        сохранение и выгрузка данных.
+                    </p>
+                </article>
+
+                <article class="card" id="feature-choice">
+                    <h2 class="card-title gap-small">Подбор</h2>
+                    <p class="card-subtitle gap">
+                        Раздел меню для дальнейшего сценария подбора решений. Текущая версия страницы может наполняться логикой отдельно.
+                    </p>
+                </article>
+
+                <article class="card" id="feature-volumes">
+                    <h2 class="card-title gap-small">Объёмы</h2>
+                    <p class="card-subtitle gap">
+                        Раздел для расчёта или отображения объёмов; интерфейс может дополняться по мере развития проекта.
+                    </p>
+                </article>
+            </div>
+
+            <div class="card gap" id="instruction">
+                <h2 class="card-title">Инструкция по использованию</h2>
+                <p class="card-subtitle gap">Рекомендуемый порядок работы и возможности интерфейса.</p>
+
+                <ol class="card-subtitle gap" style="padding-left: 1.25rem; color: var(--text-primary); line-height: 1.65;">
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Старт.</strong> Откройте нужный раздел через шапку сайта или блок «Быстрый переход» на этой странице.
+                        Убедитесь, что приложение открыто через локальный или сетевой HTTP-сервер (корректная работа модулей и IndexedDB).
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Сечения — список.</strong> На странице «Сечения» отображаются сохранённые сечения. Доступны три действия:
+                        «Создать новое» (имя в модальном окне), «Загрузить из файла» (перетаскивание или выбор <code>.data</code>),
+                        «Загрузить из шаблона» (готовый JSON-шаблон из проекта). У каждой записи в списке есть переход к редактированию и удаление.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Сечения — редактор.</strong> После открытия сечения слева заполняются описание, параметры (в т.ч. выражения от высоты подпора),
+                        координаты точек и описания полилиний для разных видов; справа — графическое представление.
+                        Переключайте вкладки вида в панели над чертежом. Блок «Настройки предпросмотра» задаёт смещение, верх/низ, опорные полилинии плана и фасада,
+                        старт и длину для развёртки. Используйте «Сохранить», чтобы записать проект в IndexedDB, и «Скачать», чтобы получить файл.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Сооружения — список.</strong> Логика как у сечений: создание, импорт, шаблон. Откройте сооружение для перехода к модели.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Сооружения — модель.</strong> Заполните таблицу стенок и при необходимости оси в текстовых полях (план, борта и земля по фасадам).
+                        Кнопка «Скачать LISP» выгружает вспомогательный сценарий для CAD. Просмотр чертежей — вкладки план, левый и правый фасады.
+                        Сохранение и скачивание — кнопки в шапке, как у сечения.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Стенка.</strong> Из модели сооружения перейдите к конкретной стенке: редактируйте таблицу, переключайте «План» / «Фасад»,
+                        сохраняйте и выгружайте данные.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Таблицы.</strong> Во многих местах используется единый табличный редактор (добавление/удаление строк, перемещение, импорт/экспорт
+                        при включённых кнопках). Ячейки могут быть числами, строками, чекбоксами или многострочным текстом.
+                    </li>
+                    <li style="margin-bottom: 0.75rem;">
+                        <strong>Тема оформления.</strong> В правой части шапки переключите «снежную» или «углеродную» тему; выбранный режим сохраняется
+                        при следующих визитах.
+                    </li>
+                    <li>
+                        <strong>Подбор, объёмы, настройки.</strong> Переходите по соответствующим пунктам меню. Если страница настроек ещё не добавлена в проект,
+                        добавьте файл <code>pages/settings.html</code> или обновите ссылку в разметке шапки (<code>scripts/layout.js</code>).
+                    </li>
+                </ol>
+            </div>
+        </main>
+        <footer class="footer"></footer>
     </div>
-
-    <!-- Отображение числа Пи -->
-    <div class="pi-view">
-        <div class="pi-header">
-            <span>3 .</span> (после запятой) — набирайте цифры по порядку
-        </div>
-        <div class="scroll-container" id="scrollContainer">
-            <span class="pi-prefix">3 .</span>
-            <span class="digits-wrapper" id="digitsWrapper"></span>
-        </div>
-    </div>
-
-    <!-- Управление и сообщения -->
-    <div class="control">
-        <button class="reset-btn" id="resetBtn">⟲ Сброс</button>
-        <div class="game-over-message" id="messageArea"></div>
-        <div class="hint">⌨️ Нажимайте цифры 0–9 … ошибка остановит игру</div>
-    </div>
-    <footer>⊹  бесконечная лента π  ⊹</footer>
-</div>
-
-<script>
-    (function() {
-        // ---------- КОНСТАНТЫ ----------
-        // Первые 200 цифр числа Пи после запятой (для демо достаточно)
-        const PI_DIGITS = "14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196";
-
-        const TOTAL_DIGITS = PI_DIGITS.length; // 200
-
-        // DOM-элементы
-        const digitsWrapper = document.getElementById('digitsWrapper');
-        const scrollContainer = document.getElementById('scrollContainer');
-        const counterSpan = document.getElementById('counter');
-        const totalSpan = document.getElementById('totalDigits');
-        const speedSpan = document.getElementById('speed');
-        const timerSpan = document.getElementById('timer');
-        const messageArea = document.getElementById('messageArea');
-        const resetBtn = document.getElementById('resetBtn');
-
-        // Состояние игры
-        let currentIndex = 0;               // индекс следующей ожидаемой цифры (0 .. TOTAL_DIGITS-1)
-        let gameActive = true;               // true - можно вводить, false - game over или победа
-        let startTime = null;                // время первого нажатия (performance.now)
-        let timerInterval = null;             // для обновления таймера и скорости
-        let speedInterval = null;             // можно объединить с таймером
-        let gameFinished = false;             // флаг победы/поражения для блокировки ввода
-
-        // Массив span'ов для быстрого доступа
-        let digitSpans = [];
-
-        // ---------- ИНИЦИАЛИЗАЦИЯ ОТОБРАЖЕНИЯ ЦИФР ----------
-        function initDigits() {
-            digitsWrapper.innerHTML = '';     // очистить
-            digitSpans = [];
-
-            // Создаём span для каждой цифры
-            for (let i = 0; i < TOTAL_DIGITS; i++) {
-                const span = document.createElement('span');
-                span.className = 'digit';
-                span.textContent = PI_DIGITS[i];
-                span.dataset.index = i;
-                digitsWrapper.appendChild(span);
-                digitSpans.push(span);
-            }
-
-            // Подсветка активной (первой) цифры
-            if (digitSpans.length > 0) {
-                digitSpans[0].classList.add('active');
-            }
-
-            // Отображаем общее количество цифр
-            totalSpan.textContent = TOTAL_DIGITS;
-        }
-
-        // ---------- СБРОС ИГРЫ ----------
-        function resetGame() {
-            // Останавливаем таймер
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
-
-            // Сброс переменных
-            currentIndex = 0;
-            gameActive = true;
-            gameFinished = false;
-            startTime = null;
-
-            // Снять все активные и ошибочные классы с цифр
-            digitSpans.forEach(span => {
-                span.classList.remove('active', 'error');
-            });
-            // Установить active на первый элемент
-            if (digitSpans.length > 0) {
-                digitSpans[0].classList.add('active');
-            }
-
-            // Очистить сообщения
-            messageArea.innerHTML = '';
-            messageArea.classList.remove('win-message');
-
-            // Обновить счётчик
-            updateCounter();
-
-            // Сброс скорости и таймера
-            speedSpan.textContent = '0';
-            timerSpan.textContent = '0.0';
-
-            // Прокрутка к началу (активная цифра теперь первая)
-            scrollToActive();
-        }
-
-        // ---------- ОБНОВЛЕНИЕ СЧЁТЧИКА ----------
-        function updateCounter() {
-            counterSpan.textContent = currentIndex; // количество правильно введённых цифр
-        }
-
-        // ---------- ПРОКРУТКА К АКТИВНОЙ ЦИФРЕ ----------
-        function scrollToActive() {
-            if (currentIndex < digitSpans.length) {
-                const activeSpan = digitSpans[currentIndex];
-                activeSpan.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                    inline: 'center'
-                });
-            }
-        }
-
-        // ---------- ЗАВЕРШЕНИЕ ИГРЫ (ОШИБКА) ----------
-        function gameOver() {
-            if (!gameActive || gameFinished) return;
-
-            gameActive = false;
-            gameFinished = true;
-
-            // Подсветить текущую цифру красным (если она существует)
-            if (currentIndex < digitSpans.length) {
-                digitSpans[currentIndex].classList.remove('active');
-                digitSpans[currentIndex].classList.add('error');
-            }
-
-            // Показать сообщение
-            messageArea.innerHTML = '❌ Ошибка! Нажмите «Сброс» чтобы начать заново.';
-            messageArea.classList.remove('win-message');
-
-            // Таймер можно не останавливать, но ввод заблокирован
-        }
-
-        // ---------- ПОБЕДА (ВСЕ ЦИФРЫ ВВЕДЕНЫ) ----------
-        function winGame() {
-            if (!gameActive || gameFinished) return;
-
-            gameActive = false;
-            gameFinished = true;
-
-            messageArea.innerHTML = '🎉 Поздравляем! Вы ввели все 200 цифр! 🎉';
-            messageArea.classList.add('win-message');
-
-            // Убираем активный класс (последняя цифра уже не активна, т.к. мы её ввели)
-            if (currentIndex > 0 && currentIndex <= digitSpans.length) {
-                // активный класс был на предыдущей цифре, после ввода последней индекс стал равен длине
-                // поэтому просто удостоверимся, что ни одна не активна
-                digitSpans.forEach(span => span.classList.remove('active'));
-            }
-        }
-
-        // ---------- ЗАПУСК ТАЙМЕРА ----------
-        function startTimerIfNeeded() {
-            if (startTime === null && gameActive && !gameFinished) {
-                startTime = performance.now();
-
-                // Запускаем интервал обновления времени и скорости
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    if (!gameActive || gameFinished) {
-                        // Если игра окончена, можно остановить обновление (но оставим для красоты)
-                        // Однако лучше продолжать показывать время на момент остановки.
-                        // Здесь мы просто обновляем, но если игра неактивна, то скорость будет заморожена чуть позже.
-                    }
-                    updateTimerAndSpeed();
-                }, 100);
-            }
-        }
-
-        // ---------- ОБНОВЛЕНИЕ ТАЙМЕРА И СКОРОСТИ ----------
-        function updateTimerAndSpeed() {
-            if (startTime === null) {
-                timerSpan.textContent = '0.0';
-                speedSpan.textContent = '0';
-                return;
-            }
-
-            const now = performance.now();
-            const elapsedSeconds = (now - startTime) / 1000;
-            timerSpan.textContent = elapsedSeconds.toFixed(1);
-
-            // Скорость: знаков в минуту = (currentIndex) / (elapsedSeconds / 60)
-            if (elapsedSeconds > 0) {
-                const speed = Math.round((currentIndex) / (elapsedSeconds / 60));
-                speedSpan.textContent = speed;
-            } else {
-                speedSpan.textContent = '0';
-            }
-        }
-
-        // ---------- ОБРАБОТКА НАЖАТИЙ КЛАВИШ ----------
-        function onKeyDown(event) {
-            // Разрешаем только цифры (0-9)
-            const key = event.key;
-            if (key.length === 1 && key >= '0' && key <= '9') {
-                event.preventDefault(); // не вводим символы в случайные поля
-
-                // Если игра не активна или уже завершена - игнорируем
-                if (!gameActive || gameFinished) return;
-
-                // Если уже ввели все цифры - победа
-                if (currentIndex >= TOTAL_DIGITS) {
-                    winGame();
-                    return;
-                }
-
-                // Сравниваем нажатую цифру с ожидаемой
-                const expectedDigit = PI_DIGITS[currentIndex];
-                if (key === expectedDigit) {
-                    // Правильно: убираем активный класс с текущей цифры
-                    digitSpans[currentIndex].classList.remove('active');
-
-                    // Увеличиваем индекс
-                    currentIndex++;
-
-                    // Обновляем счётчик
-                    updateCounter();
-
-                    // Если после увеличения дошли до конца - победа
-                    if (currentIndex >= TOTAL_DIGITS) {
-                        winGame();
-                        // Таймер продолжает идти, но скорость больше не растёт
-                    } else {
-                        // Добавляем активный класс новой текущей цифре
-                        digitSpans[currentIndex].classList.add('active');
-                        // Прокручиваем к новой активной цифре
-                        scrollToActive();
-                    }
-
-                    // Запускаем таймер при первом нажатии
-                    startTimerIfNeeded();
-                } else {
-                    // Ошибка
-                    gameOver();
-                }
-            }
-        }
-
-        // ---------- ПЕРЕЗАПУСК ПО КНОПКЕ ----------
-        resetBtn.addEventListener('click', () => {
-            resetGame();
-        });
-
-        // ---------- ПОДПИСКА НА СОБЫТИЯ ----------
-        window.addEventListener('keydown', onKeyDown);
-
-        // ---------- СТАРТОВАЯ ИНИЦИАЛИЗАЦИЯ ----------
-        initDigits();
-        resetGame(); // задаёт корректное начальное состояние
-
-        // ---------- ДОПОЛНИТЕЛЬНО: при изменении размера окна или скролле ничего не делаем
-        // но можно убрать активный класс с чего-то ещё при потере фокуса — не требуется
-    })();
-</script>
 </body>
 </html>

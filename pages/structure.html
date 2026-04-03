@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подпорные стенки</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <script src="/scripts/theme.js"></script>
+    <script type="module" defer src="/scripts/layout.js"></script>
+    <script type="module" defer src="/scripts/render/render-structure.js"></script>
+    
+    <div class="app-container">
+        <header></header>
+        <main class="main-content">
+            <!-- LINKS -->
+            <div class="page-header">
+                <p class="greeting-sub">
+                    Home >
+                    <a href="/pages/structures.html">Сооружения</a> > 
+                    <a style="font-size: 1.1rem; text-transform: uppercase;" id="name">${name}</a>
+                </p>
+                <div class="grid small-gap" style="grid-template-columns: auto 1fr 1fr">
+                    <a id="info" class="date-info" >${this.name}</a>
+                    <button id="saveBtn" class="btn btn-primary" title="Скачать">Скачать</button>
+                    <button id="saveBtn" class="btn btn-primary" title="Сохранить">Сохранить</button>
+                </div>
+            </div>
+
+            <!-- MAIN -->
+            <div class="grid stratch" style="grid-template-columns: 1fr 1fr; height:100%">
+                <div class="card-surface scroll">
+                    <div class="card gap">
+                        <div id="wallsTable"></div>
+                    </div>
+                    
+                    <div class="grid card">
+
+                        <div class="grid" style="grid-template-columns: 3fr 1fr">
+                            <div>
+                                <h3 class="card-title">
+                                    Оси и продольные профили сооружения
+                                </h3>
+                                <h3 class="card-subtitle">
+                                    Для Cad систем воспользуйтесь LISP
+                                </h3>
+                            </div>
+                            <button class="btn btn-ghost" id="downloadLisp">
+                                Скачать LISP
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <textarea type="text" class="form-input bg-surface" placeholder=" " id="planAxel"></textarea>
+                            <label class="form-label">
+                                Ось плана
+                            </label>
+                        </div>
+
+                        <div class="grid" style="grid-template-columns: 1fr 1fr">
+                            <div class="form-group">
+                                <textarea type="text" class="form-input bg-surface" placeholder=" " id="leftFasadAxel"></textarea>
+                                <label class="form-label">
+                                    Борт левого фасада
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <textarea type="text" class="form-input bg-surface" placeholder=" " id="rightFasadAxel"></textarea>
+                                <label class="form-label">
+                                    Борт правого фасада
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <textarea type="text" class="form-input bg-surface" placeholder=" " id="leftLandAxel"></textarea>
+                                <label class="form-label">
+                                    Земля левого фасада
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <textarea type="text" class="form-input bg-surface" placeholder=" " id="rightLandAxel"></textarea>
+                                <label class="form-label">
+                                    Земля правого фасада
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+                <div style="display: flex; flex-direction: column" id="canvasContainer">
+                    <div class="nav-menu card-nav" style="position: absolute; top: 6.2rem;"></div>
+                    <div class="card tabs" style="flex-grow: 1">
+                        <div class="tab" switch-name="plan" id="planCanvas" style="height: 100%;"></div>
+                        <div class="tab" switch-name="leftFasad" id="leftFasadCanvas" style="height: 100%;"></div>
+                        <div class="tab" switch-name="rightFasad" id="rightFasadCanvas" style="height: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <footer class="footer"></footer>
+    </div>
+</body>
+</html>

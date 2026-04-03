@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подпорные стенки</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <script src="/scripts/theme.js"></script>
+    <script type="module" defer src="/scripts/layout.js"></script>
+    <script type="module" defer src="/scripts/render/render-sections.js"></script>
+    
+    <div class="app-container">
+        <header></header>
+        <main class="main-content">
+            <!-- LINKS -->
+            <div class="page-header">
+                <p class="greeting-sub">Home > <a href="/pages/sections.html" style="font-size: 1.1rem">Сечения</a></p>
+            </div>
+
+            <!-- MAIN -->
+            <div class="grid">
+                <div class="card gap">
+                    <div id="savedList" class="gap"></div>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr 1fr">
+                        <button class="btn btn-secondary" id="openCreateModal">
+                            Создать новое
+                        </button>
+                        <button class="btn btn-secondary" id="openLoadModal">
+                            Загрузить из файла
+                        </button>
+                        <button class="btn btn-secondary" id="openTemplateModal">
+                            Загрузить из шаблона
+                        </button>
+                    </div>
+                </div>
+            </div>
+  
+            <!-- MODALS --> 
+            <div class="modal" id="create">
+                <div class="card" style="width: 500px;">
+                    <div class="controls center">
+                        <h1 class="card-title">
+                            Создать сечение
+                        </h1>
+                        <button class="btn btn-secondary btn-small" id="closeModal">
+                            X
+                        </button>
+                    </div>
+                    <div class="form-group gap">
+                        <input type="text" class="form-input bg-surface" placeholder=" ">
+                        <label class="form-label">
+                            Название сечения
+                        </label>
+                    </div>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr">
+                        <button class="btn btn-secondary" id="closeModal">
+                            Отменить
+                        </button>
+                        <button class="btn btn-primary" id="create">
+                            Создать
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal" id="template">
+                <div class="card" style="width: 500px;">
+                    <div class="controls center">
+                        <h1 class="card-title">
+                            Создать сечение из шаблона
+                        </h1>
+                        <button class="btn btn-secondary btn-small" id="closeModal">
+                            X
+                        </button>
+                    </div>
+                    <div class="form-group gap">
+                        <input type="text" class="form-input bg-surface" placeholder=" ">
+                        <label class="form-label">
+                            Название сечения
+                        </label>
+                    </div>
+                    
+                    <div id="templateList"></div>
+
+                    <div id="status" class="gap"></div>
+
+                    <div class="grid" style="grid-template-columns: 1fr 1fr">
+                        <button class="btn btn-secondary" id="closeModal">
+                            Отменить
+                        </button>
+                        <button class="btn btn-primary" id="create">
+                            Создать
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal" id="delete">
+                <div class="card" style="width: 500px;">
+                    <div class="controls center">
+                        <h1 class="card-title">
+                            Удалить сечение <span class="badge badge-red" id="name">#Название сечения#</span>
+                        </h1>
+                        <button class="btn btn-secondary btn-small" id="closeModal">
+                            X
+                        </button>
+                    </div>
+                    <p class="card-subtitle gap">
+                        Вы уверены что хотите удалить сечение?
+                    </p>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr">
+                        <button class="btn btn-primary" id="closeModal">
+                            Отменить
+                        </button>
+                        <button class="btn btn-secondary" id="delete">
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal" id="load">
+                <div class="card" style="width: 500px">
+                    <div class="controls center">
+                        <h1 class="card-title">
+                            Создать сечение
+                        </h1>
+                        <button class="btn btn-secondary btn-small" id="closeModal">
+                            X
+                        </button>
+                    </div>
+                    <div class="form-group gap">
+                        <input id="name" type="text" class="form-input bg-surface" placeholder=" ">
+                        <label class="form-label">
+                            Название сечения
+                        </label>
+                    </div>
+                    <div class="drop-zone" id="dropZone">
+                        <p>Перетащите файл сюда или кликните для выбора</p>
+                        <input type="file" id="fileInput" style="display: none;" accept=".data,application/data">
+                    </div>
+                    <div id="status" class="gap"></div>
+                    <div class="grid" style="grid-template-columns: 1fr 1fr">
+                        <button class="btn btn-secondary" id="closeModal">
+                            Отменить
+                        </button>
+                        <button class="btn btn-primary" id="create">
+                            Создать
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+        <footer class="footer"></footer>
+    </div>
+</body>
+</html>
