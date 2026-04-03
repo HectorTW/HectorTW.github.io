@@ -199,7 +199,20 @@ class AppIndexedDB {
 
     // STRUCTURES
     async setStructure(structureName, data = {}) {
-        await this.DB.setItem("structures", structureName, data);
+        const dateNow = new Date();
+        const newData = {
+            lastEditDate: dateNow,
+            data: data,
+        };
+
+        const oldData = await this.getStructure(structureName);
+        if (oldData) {
+            newData.creationDate = oldData.creationDate;
+        } else {
+            newData.creationDate = dateNow;
+        }
+
+        await this.DB.setItem("structures", structureName, newData);
     }
     async deleteStructure(structureName){
         await this.DB.deleteItem("structures", structureName);

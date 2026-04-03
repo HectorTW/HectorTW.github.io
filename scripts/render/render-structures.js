@@ -197,22 +197,13 @@ function edit(name){
 }
 
 async function create(name, data = {}){
-    const dateNow = new Date();
     if (!data.planAxel) data.planAxel = "[[0,0,1],[1000,1000,0]]"
     if (!data.leftFasadAxel) data.leftFasadAxel = "[[0,110,0],[1000,130,0]]"
     if (!data.rightFasadAxel) data.rightFasadAxel = "[[0,110,0],[1000,130,0]]"
     if (!data.leftLandAxel) data.leftLandAxel = "[[0,105,0],[1000,105,0]]"
     if (!data.rightLandAxel) data.rightLandAxel = "[[0,105,0],[1000,105,0]]"
 
-    await app.setStructure(
-        name, 
-        {
-            description: "Описание пока не заполненно",
-            creationDate: dateNow,
-            lastEditDate: dateNow,
-            data: data,
-        }
-    )
+    await app.setStructure(name, data);
 
     updateList();
 }
