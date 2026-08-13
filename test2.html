@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Коллаборативный рисунок через WebRTC</title>
+
+    <!-- Firebase compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js">
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1200px;
+            background: #16213e;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a3a5e;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #7ec8e3;
+            margin-right: auto;
+            letter-spacing: 0.5px;
+        }
+
+        .header h1 span {
+            color: #f0a500;
+        }
+
+        .room-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .room-section label {
+            font-size: 14px;
+            color: #aac;
+            font-weight: 500;
+        }
+
+        .room-section input {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid #2a3a5e;
+            background: #0f1a2f;
+            color: #eee;
+            font-size: 14px;
+            width: 160px;
+            transition: border 0.2s;
+            outline: none;
+        }
+
+        .room-section input:focus {
+            border-color: #7ec8e3;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #2a3a5e;
+            color: #ccc;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            filter: brightness(1.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #7ec8e3;
+            color: #0f1a2f;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #a3d8ee;
+        }
+
+        .btn-danger {
+            background: #e06060;
+            color: #fff;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #f08080;
+        }
+
+        .btn-success {
+            background: #4ecdc4;
+            color: #0f1a2f;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #6ee0d7;
+        }
+
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+
+        .status-bar .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-dot.offline {
+            background: #555;
+        }
+        .status-dot.connecting {
+            background: #f0a500;
+            animation: pulse 0.8s infinite;
+        }
+        .status-dot.online {
+            background: #4ecdc4;
+        }
+        .status-dot.error {
+            background: #e06060;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.85);
+            }
+        }
+
+        .status-bar .peers-count {
+            color: #8af;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .status-bar .peer-list {
+            color: #88aacc;
+            font-size: 12px;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 0;
+            background: #0f1a2f;
+            border-radius: 12px;
+            padding: 10px 16px;
+        }
+
+        .toolbar .group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar label {
+            font-size: 13px;
+            color: #aac;
+        }
+
+        .toolbar input[type="color"] {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #2a3a5e;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        .toolbar input[type="range"] {
+            width: 100px;
+            accent-color: #7ec8e3;
+            background: #1a2a4e;
+            height: 4px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .toolbar .size-label {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            color: #7ec8e3;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #0a0f1f;
+            border: 2px solid #2a3a5e;
+            touch-action: none;
+            cursor: crosshair;
+            aspect-ratio: 16 / 9;
+            min-height: 400px;
+        }
+
+        .canvas-wrapper canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: white;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        .canvas-wrapper .overlay-msg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(10, 15, 31, 0.7);
+            color: #aac;
+            font-size: 18px;
+            pointer-events: none;
+            transition: opacity 0.4s;
+        }
+
+        .canvas-wrapper .overlay-msg.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .canvas-wrapper .overlay-msg .icon {
+            font-size: 48px;
+            opacity: 0.6;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #556;
+            padding-top: 8px;
+            border-top: 1px solid #1a2a4e;
+        }
+
+        .footer .hint {
+            color: #668;
+        }
+
+        @media (max-width: 700px) {
+            .app {
+                padding: 12px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header h1 {
+                text-align: center;
+            }
+            .room-section {
+                justify-content: center;
+            }
+            .room-section input {
+                width: 120px;
+            }
+            .toolbar {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .toolbar .group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .status-bar {
+                flex-wrap: wrap;
+                justify-content: center;
+                font-size: 12px;
+            }
+            .canvas-wrapper {
+                min-height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎨 <span>Collab</span>Draw</h1>
+            <div class="room-section">
+                <label for="roomInput">Комната</label>
+                <input type="text" id="roomInput" placeholder="ID комнаты" value="drawing-room" />
+                <button class="btn btn-primary" id="joinBtn">Подключиться</button>
+                <button class="btn btn-danger" id="leaveBtn" disabled>Выйти</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status-bar">
+            <span>
+                <span class="status-dot offline" id="statusDot"></span>
+                <span id="statusText">Не подключён</span>
+            </span>
+            <span class="peers-count" id="peersCount">👤 0</span>
+            <span class="peer-list" id="peerList"></span>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar" id="toolbar" style="opacity:0.5; pointer-events:none; transition:opacity 0.3s;">
+            <div class="group">
+                <label>Цвет</label>
+                <input type="color" id="colorPicker" value="#e74c3c" />
+            </div>
+            <div class="group">
+                <label>Размер</label>
+                <input type="range" id="sizeSlider" min="2" max="30" value="6" />
+                <span class="size-label" id="sizeLabel">6</span>
+            </div>
+            <div class="group">
+                <button class="btn btn-success" id="clearBtn">🗑 Очистить</button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-wrapper">
+            <canvas id="drawCanvas"></canvas>
+            <div class="overlay-msg" id="overlayMsg">
+                <div class="icon">✏️</div>
+                <div>Подключитесь к комнате, чтобы рисовать</div>
+                <div style="font-size:14px; color:#668;">Данные рисунка передаются через WebRTC 🔒</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span class="hint">🖱 Рисуйте мышкой — данные идут напрямую между участниками</span>
+            <span id="connectionInfo">WebRTC: ожидание</span>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  1. Глобальное состояние
+        // ============================================================
+        const state = {
+            roomId: null,
+            peerId: null,
+            isJoined: false,
+            peers: {}, // peerId -> { connected: bool, pc: RTCPeerConnection, dc: RTCDataChannel }
+            connections: {}, // peerId -> RTCPeerConnection
+            dataChannels: {}, // peerId -> RTCDataChannel
+            isDrawing: false,
+            lastX: 0,
+            lastY: 0,
+            color: '#e74c3c',
+            size: 6,
+            canvasReady: false,
+            firebaseReady: false,
+            db: null,
+            signalingRefs: {}, // pairId -> { offerRef, answerRef, candidatesRef }
+            initiator: false, // true если этот peer инициирует соединение
+        };
+
+        // ============================================================
+        //  2. DOM-элементы
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const roomInput = $('roomInput');
+        const joinBtn = $('joinBtn');
+        const leaveBtn = $('leaveBtn');
+        const statusDot = $('statusDot');
+        const statusText = $('statusText');
+        const peersCount = $('peersCount');
+        const peerList = $('peerList');
+        const canvas = $('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlayMsg = $('overlayMsg');
+        const colorPicker = $('colorPicker');
+        const sizeSlider = $('sizeSlider');
+        const sizeLabel = $('sizeLabel');
+        const clearBtn = $('clearBtn');
+        const connectionInfo = $('connectionInfo');
+        const toolbar = $('toolbar');
+
+        // ============================================================
+        //  3. Canvas
+        // ============================================================
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const w = rect.width;
+            const h = rect.height;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            ctx.scale(dpr, dpr);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            state.canvasReady = true;
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left);
+            const y = (e.clientY - rect.top);
+            return { x, y };
+        }
+
+        function drawPoint(x, y, color, size) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawLine(x1, y1, x2, y2, color, size) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function clearCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            // Заполним белым фоном
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+        }
+
+        // Инициализация canvas
+        resizeCanvas();
+        clearCanvas();
+        window.addEventListener('resize', () => {
+            // сохраним рисунок перед изменением размера
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            resizeCanvas();
+            ctx.putImageData(imageData, 0, 0);
+        });
+
+        // ============================================================
+        //  4. Обработчики рисования на canvas
+        // ============================================================
+        function handleDrawStart(e) {
+            if (!state.isJoined) return;
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            state.isDrawing = true;
+            state.lastX = x;
+            state.lastY = y;
+            const color = state.color;
+            const size = state.size;
+            drawPoint(x, y, color, size);
+            // Отправляем событие всем пирам
+            sendDrawEvent({ action: 'start', x, y, color, size });
+        }
+
+        function handleDrawMove(e) {
+            if (!state.isDrawing || !state.isJoined) return;
+            e.preventDefault();
+            const { x, y } = getCanvasCoords(e);
+            const color = state.color;
+            const size = state.size;
+            drawLine(state.lastX, state.lastY, x, y, color, size);
+            sendDrawEvent({ action: 'move', x, y, color, size });
+            state.lastX = x;
+            state.lastY = y;
+        }
+
+        function handleDrawEnd(e) {
+            if (!state.isDrawing) return;
+            e.preventDefault();
+            state.isDrawing = false;
+            sendDrawEvent({ action: 'end' });
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', handleDrawStart);
+        canvas.addEventListener('mousemove', handleDrawMove);
+        canvas.addEventListener('mouseup', handleDrawEnd);
+        canvas.addEventListener('mouseleave', handleDrawEnd);
+
+        // Touch events для мобильных
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const me = new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY });
+            canvas.dispatchEvent(me);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const me = new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY });
+            canvas.dispatchEvent(me);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const me = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(me);
+        }, { passive: false });
+
+        // ============================================================
+        //  5. Toolbar
+        // ============================================================
+        colorPicker.addEventListener('input', () => { state.color = colorPicker.value; });
+        sizeSlider.addEventListener('input', () => {
+            state.size = parseInt(sizeSlider.value);
+            sizeLabel.textContent = state.size;
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (!state.isJoined) return;
+            clearCanvas();
+            // Отправляем событие очистки всем пирам
+            sendDrawEvent({ action: 'clear' });
+        });
+
+        // ============================================================
+        //  6. WebRTC / Signaling
+        // ============================================================
+
+        // Генерация короткого ID (6 символов)
+        function generatePeerId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // Получить пару ID в отсортированном порядке
+        function getPairId(idA, idB) {
+            const sorted = [idA, idB].sort();
+            return sorted[0] + '_' + sorted[1];
+        }
+
+        // === Отправка drawing events через data channel ===
+        function sendDrawEvent(data) {
+            const msg = JSON.stringify({ type: 'draw', data });
+            for (const peerId in state.dataChannels) {
+                const dc = state.dataChannels[peerId];
+                if (dc && dc.readyState === 'open') {
+                    try {
+                        dc.send(msg);
+                    } catch (e) { /* ignore */ }
+                }
+            }
+        }
+
+        // === Обработка входящего drawing события ===
+        function handleDrawMessage(data) {
+            const action = data.action;
+            if (action === 'clear') {
+                clearCanvas();
+                return;
+            }
+            const x = data.x,
+                y = data.y;
+            if (action === 'start') {
+                state.lastX = x;
+                state.lastY = y;
+                drawPoint(x, y, data.color, data.size);
+            } else if (action === 'move') {
+                drawLine(state.lastX, state.lastY, x, y, data.color, data.size);
+                state.lastX = x;
+                state.lastY = y;
+            } else if (action === 'end') {
+                // ничего не делаем
+            }
+        }
+
+        // === Создание RTCPeerConnection ===
+        function createPeerConnection(remotePeerId, initiator) {
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            });
+
+            let dc = null;
+
+            if (initiator) {
+                // Создаём data channel
+                dc = pc.createDataChannel('drawData', { ordered: true });
+                dc.onopen = () => {
+                    console.log(`[${state.peerId}] Data channel open with ${remotePeerId}`);
+                    state.dataChannels[remotePeerId] = dc;
+                    updateConnectionInfo();
+                };
+                dc.onclose = () => {
+                    console.log(`[${state.peerId}] Data channel closed with ${remotePeerId}`);
+                    delete state.dataChannels[remotePeerId];
+                    updateConnectionInfo();
+                };
+                dc.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg.type === 'draw') {
+                            handleDrawMessage(msg.data);
+                        }
+                    } catch (err) { /* ignore */ }
+                };
+            } else {
+                // Принимаем data channel от инициатора
+                pc.ondatachannel = (event) => {
+                    dc = event.channel;
+                    dc.onopen = () => {
+                        console.log(`[${state.peerId}] Data channel open with ${remotePeerId}`);
+                        state.dataChannels[remotePeerId] = dc;
+                        updateConnectionInfo();
+                    };
+                    dc.onclose = () => {
+                        console.log(`[${state.peerId}] Data channel closed with ${remotePeerId}`);
+                        delete state.dataChannels[remotePeerId];
+                        updateConnectionInfo();
+                    };
+                    dc.onmessage = (e) => {
+                        try {
+                            const msg = JSON.parse(e.data);
+                            if (msg.type === 'draw') {
+                                handleDrawMessage(msg.data);
+                            }
+                        } catch (err) { /* ignore */ }
+                    };
+                };
+            }
+
+            // ICE candidates
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    const pairId = getPairId(state.peerId, remotePeerId);
+                    const candidateRef = state.db.ref(`rooms/${state.roomId}/signaling/${pairId}/candidates`);
+                    candidateRef.push({
+                        candidate: event.candidate.candidate,
+                        sdpMid: event.candidate.sdpMid,
+                        sdpMLineIndex: event.candidate.sdpMLineIndex,
+                        from: state.peerId
+                    });
+                }
+            };
+
+            // Отслеживаем состояние соединения
+            pc.onconnectionstatechange = () => {
+                const cs = pc.connectionState;
+                console.log(`[${state.peerId}] Connection state with ${remotePeerId}: ${cs}`);
+                if (cs === 'connected') {
+                    state.peers[remotePeerId].connected = true;
+                    updateUI();
+                } else if (cs === 'disconnected' || cs === 'failed' || cs === 'closed') {
+                    state.peers[remotePeerId].connected = false;
+                    delete state.dataChannels[remotePeerId];
+                    updateUI();
+                }
+                updateConnectionInfo();
+            };
+
+            return { pc, dc };
+        }
+
+        // === Инициировать соединение с удалённым пиром ===
+        async function initiateConnection(remotePeerId) {
+            const pairId = getPairId(state.peerId, remotePeerId);
+            const signalingRef = state.db.ref(`rooms/${state.roomId}/signaling/${pairId}`);
+
+            // Проверяем, не существует ли уже offer
+            const snap = await signalingRef.child('offer').once('value');
+            if (snap.exists()) {
+                console.log(`[${state.peerId}] Offer already exists for ${remotePeerId}, skipping`);
+                return;
+            }
+
+            console.log(`[${state.peerId}] Initiating connection to ${remotePeerId}`);
+
+            const { pc, dc } = createPeerConnection(remotePeerId, true);
+            state.peers[remotePeerId] = { connected: false, pc, dc };
+            state.connections[remotePeerId] = pc;
+            if (dc) state.dataChannels[remotePeerId] = dc;
+
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                await signalingRef.child('offer').set({
+                    sdp: offer.sdp,
+                    type: offer.type,
+                    from: state.peerId,
+                    timestamp: Date.now()
+                });
+
+                // Слушаем ответ
+                const answerRef = signalingRef.child('answer');
+                answerRef.on('value', (snap) => {
+                    const val = snap.val();
+                    if (val && pc) {
+                        const answer = new RTCSessionDescription({ sdp: val.sdp, type: val.type });
+                        pc.setRemoteDescription(answer).catch(console.error);
+                        answerRef.off();
+                    }
+                });
+
+                // Слушаем ICE кандидаты
+                const candidatesRef = signalingRef.child('candidates');
+                candidatesRef.on('child_added', (snap) => {
+                    const cand = snap.val();
+                    if (cand && cand.from !== state.peerId && pc) {
+                        const candidate = new RTCIceCandidate({
+                            candidate: cand.candidate,
+                            sdpMid: cand.sdpMid,
+                            sdpMLineIndex: cand.sdpMLineIndex
+                        });
+                        pc.addIceCandidate(candidate).catch(console.error);
+                    }
+                });
+
+                // Чистим после завершения
+                pc.onconnectionstatechange = () => {
+                    if (pc.connectionState === 'connected' || pc.connectionState === 'disconnected' ||
+                        pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                        if (pc.connectionState === 'connected') {
+                            // всё хорошо
+                        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                            cleanupConnection(remotePeerId);
+                        }
+                    }
+                };
+
+            } catch (err) {
+                console.error(`[${state.peerId}] Error initiating connection to ${remotePeerId}:`, err);
+            }
+        }
+
+        // === Ответить на входящий offer ===
+        async function respondToOffer(remotePeerId, offerData) {
+            const pairId = getPairId(state.peerId, remotePeerId);
+            const signalingRef = state.db.ref(`rooms/${state.roomId}/signaling/${pairId}`);
+
+            // Проверяем, не ответили ли уже
+            const snap = await signalingRef.child('answer').once('value');
+            if (snap.exists()) {
+                console.log(`[${state.peerId}] Answer already exists for ${remotePeerId}, skipping`);
+                return;
+            }
+
+            console.log(`[${state.peerId}] Responding to offer from ${remotePeerId}`);
+
+            const { pc, dc } = createPeerConnection(remotePeerId, false);
+            state.peers[remotePeerId] = { connected: false, pc, dc };
+            state.connections[remotePeerId] = pc;
+            if (dc) state.dataChannels[remotePeerId] = dc;
+
+            try {
+                const offer = new RTCSessionDescription({ sdp: offerData.sdp, type: offerData.type });
+                await pc.setRemoteDescription(offer);
+
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                await signalingRef.child('answer').set({
+                    sdp: answer.sdp,
+                    type: answer.type,
+                    from: state.peerId,
+                    timestamp: Date.now()
+                });
+
+                // Слушаем ICE кандидаты
+                const candidatesRef = signalingRef.child('candidates');
+                candidatesRef.on('child_added', (snap) => {
+                    const cand = snap.val();
+                    if (cand && cand.from !== state.peerId && pc) {
+                        const candidate = new RTCIceCandidate({
+                            candidate: cand.candidate,
+                            sdpMid: cand.sdpMid,
+                            sdpMLineIndex: cand.sdpMLineIndex
+                        });
+                        pc.addIceCandidate(candidate).catch(console.error);
+                    }
+                });
+
+                pc.onconnectionstatechange = () => {
+                    if (pc.connectionState === 'connected' || pc.connectionState === 'disconnected' ||
+                        pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                            cleanupConnection(remotePeerId);
+                        }
+                    }
+                };
+
+            } catch (err) {
+                console.error(`[${state.peerId}] Error responding to ${remotePeerId}:`, err);
+            }
+        }
+
+        // === Очистка соединения ===
+        function cleanupConnection(remotePeerId) {
+            const peer = state.peers[remotePeerId];
+            if (peer) {
+                if (peer.pc) {
+                    try { peer.pc.close(); } catch (e) {}
+                }
+                delete state.connections[remotePeerId];
+                delete state.dataChannels[remotePeerId];
+                delete state.peers[remotePeerId];
+            }
+            const pairId = getPairId(state.peerId, remotePeerId);
+            if (state.signalingRefs[pairId]) {
+                // отписываемся от Firebase
+                const refs = state.signalingRefs[pairId];
+                if (refs.offerRef) refs.offerRef.off();
+                if (refs.answerRef) refs.answerRef.off();
+                if (refs.candidatesRef) refs.candidatesRef.off();
+                delete state.signalingRefs[pairId];
+            }
+            updateUI();
+            updateConnectionInfo();
+        }
+
+        // === Слушаем новых пиров в комнате ===
+        function listenForPeers() {
+            const peersRef = state.db.ref(`rooms/${state.roomId}/peers`);
+
+            peersRef.on('child_added', (snap) => {
+                const peerId = snap.key;
+                if (peerId === state.peerId) return;
+                const data = snap.val();
+                if (!data || !data.connected) return;
+
+                // Если уже есть соединение — пропускаем
+                if (state.peers[peerId]) return;
+
+                console.log(`[${state.peerId}] New peer detected: ${peerId}`);
+
+                // Инициируем соединение, если наш ID меньше (или если это мы — инициатор)
+                const shouldInitiate = state.peerId < peerId;
+                if (shouldInitiate) {
+                    initiateConnection(peerId);
+                } else {
+                    // Будем ждать offer от другого пира
+                    // Слушаем offer в signaling
+                    const pairId = getPairId(state.peerId, peerId);
+                    const offerRef = state.db.ref(`rooms/${state.roomId}/signaling/${pairId}/offer`);
+                    const handler = (snap) => {
+                        const val = snap.val();
+                        if (val && val.from === peerId) {
+                            // Получили offer от другого пира
+                            respondToOffer(peerId, val);
+                            offerRef.off('value', handler);
+                        }
+                    };
+                    offerRef.on('value', handler);
+                    state.signalingRefs[pairId] = state.signalingRefs[pairId] || {};
+                    state.signalingRefs[pairId].offerRef = offerRef;
+                }
+
+                updateUI();
+            });
+
+            peersRef.on('child_removed', (snap) => {
+                const peerId = snap.key;
+                if (peerId === state.peerId) return;
+                console.log(`[${state.peerId}] Peer removed: ${peerId}`);
+                cleanupConnection(peerId);
+                updateUI();
+            });
+
+            // Также слушаем изменения, чтобы обновить статус
+            peersRef.on('child_changed', (snap) => {
+                const peerId = snap.key;
+                if (peerId === state.peerId) return;
+                const data = snap.val();
+                if (data && data.connected === false) {
+                    cleanupConnection(peerId);
+                    updateUI();
+                }
+            });
+
+            state._peersRef = peersRef;
+        }
+
+        // === Обновление UI ===
+        function updateUI() {
+            const peerIds = Object.keys(state.peers);
+            const connectedPeers = peerIds.filter(id => state.peers[id].connected);
+            peersCount.textContent = `👤 ${connectedPeers.length + (state.isJoined ? 1 : 0)}`;
+
+            if (connectedPeers.length > 0) {
+                peerList.textContent = '🟢 ' + connectedPeers.join(' ');
+            } else {
+                peerList.textContent = state.isJoined ? 'Ожидание участников...' : '';
+            }
+
+            if (state.isJoined) {
+                toolbar.style.opacity = '1';
+                toolbar.style.pointerEvents = 'auto';
+                overlayMsg.classList.add('hidden');
+                statusDot.className = 'status-dot online';
+                statusText.textContent = `В комнате «${state.roomId}» (${connectedPeers.length + 1} участников)`;
+            } else {
+                toolbar.style.opacity = '0.5';
+                toolbar.style.pointerEvents = 'none';
+                overlayMsg.classList.remove('hidden');
+                statusDot.className = 'status-dot offline';
+                statusText.textContent = 'Не подключён';
+            }
+        }
+
+        function updateConnectionInfo() {
+            const channels = Object.keys(state.dataChannels).filter(id => {
+                const dc = state.dataChannels[id];
+                return dc && dc.readyState === 'open';
+            });
+            if (channels.length > 0) {
+                connectionInfo.textContent = `🔗 WebRTC: ${channels.length} каналов открыто (${channels.join(' ')})`;
+            } else if (state.isJoined) {
+                connectionInfo.textContent = '⏳ WebRTC: ожидание подключения...';
+            } else {
+                connectionInfo.textContent = 'WebRTC: ожидание';
+            }
+        }
+
+        // ============================================================
+        //  7. Вход / Выход из комнаты
+        // ============================================================
+
+        async function joinRoom() {
+            if (!state.firebaseReady) {
+                statusText.textContent = '⚠️ Firebase не инициализирован';
+                return;
+            }
+
+            const roomId = roomInput.value.trim() || 'drawing-room';
+            state.roomId = roomId;
+            state.peerId = generatePeerId();
+
+            console.log(`[${state.peerId}] Joining room: ${roomId}`);
+
+            try {
+                // Записываем своё присутствие
+                const myRef = state.db.ref(`rooms/${roomId}/peers/${state.peerId}`);
+                await myRef.set({
+                    connected: true,
+                    joinedAt: Date.now()
+                });
+
+                // При выходе удаляем себя
+                myRef.onDisconnect().set(null);
+
+                state.isJoined = true;
+                joinBtn.disabled = true;
+                leaveBtn.disabled = false;
+                roomInput.disabled = true;
+
+                // Слушаем других пиров
+                listenForPeers();
+
+                // Обновляем UI
+                updateUI();
+                updateConnectionInfo();
+
+                // Также слушаем существующие offer'ы для нас (если мы не инициатор)
+                // Это обработает случай, когда мы подключаемся к уже существующей комнате
+                // и другие пиры уже отправили offer'ы
+                setTimeout(() => {
+                    // Проверяем всех существующих пиров и инициируем соединения если нужно
+                    const peersRef = state.db.ref(`rooms/${roomId}/peers`);
+                    peersRef.once('value', (snap) => {
+                        const data = snap.val();
+                        if (data) {
+                            for (const pid in data) {
+                                if (pid === state.peerId) continue;
+                                if (!state.peers[pid] && data[pid].connected) {
+                                    if (state.peerId < pid) {
+                                        initiateConnection(pid);
+                                    } else {
+                                        // слушаем offer
+                                        const pairId = getPairId(state.peerId, pid);
+                                        const offerRef = state.db.ref(
+                                            `rooms/${roomId}/signaling/${pairId}/offer`);
+                                        const handler = (snap) => {
+                                            const val = snap.val();
+                                            if (val && val.from === pid) {
+                                                respondToOffer(pid, val);
+                                                offerRef.off('value', handler);
+                                            }
+                                        };
+                                        offerRef.on('value', handler);
+                                        state.signalingRefs[pairId] = state.signalingRefs[pairId] || {};
+                                        state.signalingRefs[pairId].offerRef = offerRef;
+                                    }
+                                }
+                            }
+                        }
+                        updateUI();
+                    });
+                }, 500);
+
+                statusText.textContent = `Подключён к комнате «${roomId}»`;
+                statusDot.className = 'status-dot online';
+
+            } catch (err) {
+                console.error('Ошибка входа в комнату:', err);
+                statusText.textContent = '❌ Ошибка подключения: ' + err.message;
+                statusDot.className = 'status-dot error';
+                state.isJoined = false;
+                joinBtn.disabled = false;
+                leaveBtn.disabled = true;
+                roomInput.disabled = false;
+            }
+        }
+
+        function leaveRoom() {
+            if (!state.isJoined) return;
+
+            // Закрываем все соединения
+            for (const pid in state.connections) {
+                cleanupConnection(pid);
+            }
+
+            // Удаляем себя из комнаты
+            if (state.roomId && state.peerId && state.db) {
+                const myRef = state.db.ref(`rooms/${state.roomId}/peers/${state.peerId}`);
+                myRef.set(null).catch(console.error);
+                if (state._peersRef) {
+                    state._peersRef.off();
+                    delete state._peersRef;
+                }
+            }
+
+            // Очищаем состояние
+            state.isJoined = false;
+            state.peers = {};
+            state.connections = {};
+            state.dataChannels = {};
+            state.signalingRefs = {};
+
+            joinBtn.disabled = false;
+            leaveBtn.disabled = true;
+            roomInput.disabled = false;
+
+            updateUI();
+            updateConnectionInfo();
+
+            statusText.textContent = 'Отключён';
+            statusDot.className = 'status-dot offline';
+            connectionInfo.textContent = 'WebRTC: ожидание';
+
+            console.log(`[${state.peerId}] Left room`);
+        }
+
+        // ============================================================
+        //  8. Firebase инициализация
+        // ============================================================
+
+        async function initFirebase() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const config = await response.json();
+                firebase.initializeApp(config);
+                state.db = firebase.database();
+                state.firebaseReady = true;
+                statusText.textContent = '✅ Firebase готов';
+                statusDot.className = 'status-dot online';
+                joinBtn.disabled = false;
+                console.log('Firebase инициализирован');
+            } catch (err) {
+                console.error('Ошибка загрузки config.json:', err);
+                statusText.textContent = '❌ Не удалось загрузить config.json. Проверьте файл и запустите через сервер.';
+                statusDot.className = 'status-dot error';
+                joinBtn.disabled = true;
+            }
+        }
+
+        // ============================================================
+        //  9. Обработчики UI
+        // ============================================================
+
+        joinBtn.addEventListener('click', joinRoom);
+
+        leaveBtn.addEventListener('click', leaveRoom);
+
+        roomInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') joinRoom();
+        });
+
+        // ============================================================
+        //  10. Запуск
+        // ============================================================
+
+        initFirebase();
+
+        // Периодически обновляем информацию о соединении
+        setInterval(updateConnectionInfo, 2000);
+
+        console.log('🎨 CollabDraw загружен');
+        console.log('📡 Данные рисунка передаются ТОЛЬКО через WebRTC');
+        console.log('🔥 Firebase используется только для signalling (обмен SDP/ICE)');
+
+        // Защита от закрытия страницы — оставляем комнату чистой
+        window.addEventListener('beforeunload', () => {
+            if (state.isJoined && state.roomId && state.peerId && state.db) {
+                const myRef = state.db.ref(`rooms/${state.roomId}/peers/${state.peerId}`);
+                myRef.set(null);
+            }
+        });
+    </script>
+</body>
+</html>
