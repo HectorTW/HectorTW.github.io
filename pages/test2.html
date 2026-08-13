@@ -1118,7 +1118,17 @@
             try {
                 const response = await fetch('config.json');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const config = await response.json();
+                // const config = await response.json();
+                const config = {
+                    "apiKey": "AIzaSyB9Kn7XlW7Gofyz-5JfKo8V2n53DpKdMnM",
+                    "authDomain": "hectortw-apoj.firebaseapp.com",
+                    "databaseURL": "https://hectortw-apoj-default-rtdb.europe-west1.firebasedatabase.app",
+                    "projectId": "hectortw-apoj",
+                    "storageBucket": "hectortw-apoj.firebasestorage.app",
+                    "messagingSenderId": "167890858554",
+                    "appId": "1:167890858554:web:abdbad2243e223f5457b03"
+                }
+
                 firebase.initializeApp(config);
                 state.db = firebase.database();
                 state.firebaseReady = true;
