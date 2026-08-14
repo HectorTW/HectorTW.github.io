@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Голосовой чат с Firebase</title>
+    <!-- Firebase compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg: #1e1e2f;
+            --panel: #2a2a40;
+            --text: #e0e0e0;
+            --accent: #6c63ff;
+            --danger: #ff6b6b;
+            --success: #4caf50;
+            --border: #444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        header {
+            background: var(--panel);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        header h1 {
+            font-size: 1.3rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #delete-all-btn {
+            background: var(--danger);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            width: auto;
+        }
+        #delete-all-btn:hover {
+            background: #e04848;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr 280px;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+        }
+        .panel h3 {
+            margin-bottom: 15px;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin: 5px 0;
+            width: 100%;
+        }
+        button:hover { background: #5a52d5; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .record-btn.recording {
+            background: var(--danger);
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #1e1e2f;
+            color: var(--text);
+            margin: 5px 0;
+        }
+        .message {
+            background: #333350;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .message .author {
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .message .time {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+        .voice-message {
+            background: #252540;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: default;
+            transition: border 0.2s, background 0.2s;
+            border: 2px solid transparent;
+        }
+        .voice-message audio {
+            flex: 1;
+            height: 35px;
+        }
+        .voice-message.selected {
+            border-color: var(--accent);
+            background: #3a3a5a;
+        }
+        .voice-message .author {
+            font-weight: bold;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+        .users-list {
+            list-style: none;
+        }
+        .users-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .volume-control input[type="range"] {
+            flex: 1;
+        }
+        #status {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        .volume-indicator {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        .volume-indicator .level-bar {
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .volume-indicator .level-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--success);
+            transition: width 0.05s linear;
+        }
+
+        /* Модальное окно записи */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 750px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content h3 {
+            color: #ccc;
+            margin-bottom: 15px;
+        }
+        #record-visualizer {
+            width: 100%;
+            height: 100px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        #record-controls {
+            margin-top: 15px;
+        }
+        #waveform-canvas {
+            width: 100%;
+            height: 150px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+        #playback-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        #playback-controls button {
+            width: auto;
+            padding: 5px 12px;
+        }
+        #playback-controls input[type="range"] {
+            width: 120px;
+        }
+        #record-preview {
+            margin-top: 15px;
+        }
+        #merge-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        #merge-controls button {
+            width: auto;
+            flex: 1;
+        }
+        .selecting .voice-message {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🎙️ Голосовые сообщения + чат</h1>
+        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div id="status">Ожидание подключения...</div>
+            <button id="delete-all-btn">🗑️ Удалить все сообщения</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Левая панель: подключение и настройки -->
+        <div class="panel">
+            <h3>Подключение</h3>
+            <input type="text" id="display-name" placeholder="Ваше имя">
+            <button id="join-btn" disabled>Присоединиться</button>
+            <hr style="border-color: #444; margin: 15px 0;">
+            <h3>Микрофон</h3>
+            <select id="mic-select"></select>
+            <div class="volume-indicator">
+                <span>Уровень:</span>
+                <div class="level-bar">
+                    <div id="mic-level-bar" class="level-fill"></div>
+                </div>
+            </div>
+            <button id="mute-mic-btn">🎤 Mute Mic</button>
+            <div class="volume-control">
+                <span>Громкость:</span>
+                <input type="range" id="volume" min="0" max="100" value="100">
+                <span id="volume-label">100%</span>
+            </div>
+        </div>
+
+        <!-- Центральная панель: сообщения -->
+        <div class="panel">
+            <h3>💬 Чат и голосовые сообщения 
+                <button id="merge-btn" style="width:auto; margin-left:10px;">🔗 Объединить</button>
+            </h3>
+            <div id="messages-container" style="max-height: 60vh; overflow-y: auto; margin-bottom: 15px;"></div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="chat-input" placeholder="Текстовое сообщение..." style="flex:1;">
+                <button id="send-btn" style="width: auto;">Отправить</button>
+            </div>
+            <button id="record-btn" class="record-btn">🎤 Записать голосовое</button>
+            <div id="recording-indicator" style="display:none; color: var(--danger); margin-top: 8px;">● Идёт запись...</div>
+            <div id="merge-controls" style="display:none; margin-top:10px;">
+                <button id="cancel-merge-btn">Отменить выбор</button>
+                <button id="confirm-merge-btn">Подтвердить выбор</button>
+            </div>
+        </div>
+
+        <!-- Правая панель: пользователи онлайн -->
+        <div class="panel">
+            <h3>👥 Сейчас в чате</h3>
+            <ul class="users-list" id="users-list"></ul>
+        </div>
+    </div>
+
+    <!-- Модальное окно записи -->
+    <div id="record-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h3>Запись голосового сообщения</h3>
+            <canvas id="record-visualizer" width="600" height="100"></canvas>
+            <div id="record-controls">
+                <button id="stop-record-btn">⏹ Остановить запись</button>
+                <div id="record-preview" style="display:none;">
+                    <canvas id="waveform-canvas" width="600" height="150"></canvas>
+                    <div id="playback-controls" style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <button id="play-pause-btn" style="width: auto; padding: 5px 12px;">▶️</button>
+                        <span id="current-time">0:00</span>
+                        <span>/</span>
+                        <span id="total-duration">0:00</span>
+                        <input type="range" id="playback-volume" min="0" max="100" value="100" style="width: 120px;">
+                        <span id="volume-percent">100%</span>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <button id="add-cut-btn">✂️ Разрезать</button>
+                        <span style="margin-left: 10px; font-size: 0.8rem; color: #aaa;">(клик по дорожке — перемотка, перетаскивание метки — перемещение, правый клик по метке — удалить)</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button id="re-record-btn">🔄 Перезаписать</button>
+                        <button id="send-record-btn">📤 Отправить</button>
+                    </div>
+                </div>
+            </div>
+            <button id="close-modal-btn" style="margin-top:10px;">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+        let db = null;
+        let firebaseReady = false;
+        let userId = null;
+        let displayName = '';
+        let localStream = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let isMicMuted = false;
+        let playbackVolume = 1.0;
+
+        let audioContext = null;
+        let analyserNode = null;
+        let microphoneSource = null;
+        let dataArray = null;
+        let volumeAnimationId = null;
+        let recordAnimationId = null;
+        let recordedSamples = [];
+        let recordedBlob = null;
+        let recordedUrl = null;
+        let cutMarks = [];
+        let mergeModeActive = false;
+        let selectedVoiceMessages = [];
+        let mergeSelectedData = [];
+
+        let recordedAudioBuffer = null;
+        let waveformData = [];
+        let isPlaying = false;
+        let audioSourceNode = null;
+        let playbackGainNode = null;
+        let playbackStartTime = 0;
+        let playbackCurrentTime = 0;
+        let playbackDuration = 0;
+        let isDraggingCutMark = -1;
+        let dragOffset = 0;
+        let canvasWidth = 600;
+        let canvasHeight = 150;
+
+        // ==================== ЗАГРУЗКА КОНФИГУРАЦИИ FIREBASE ====================
+        async function loadConfig() {
+            try {
+                // const response = await fetch('config.json');
+                // if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                // const config = await response.json();
+                const config = {
+                    "apiKey": "AIzaSyB9Kn7XlW7Gofyz-5JfKo8V2n53DpKdMnM",
+                    "authDomain": "hectortw-apoj.firebaseapp.com",
+                    "databaseURL": "https://hectortw-apoj-default-rtdb.europe-west1.firebasedatabase.app",
+                    "projectId": "hectortw-apoj",
+                    "storageBucket": "hectortw-apoj.firebasestorage.app",
+                    "messagingSenderId": "167890858554",
+                    "appId": "1:167890858554:web:abdbad2243e223f5457b03"
+                }
+
+                firebase.initializeApp(config);
+                db = firebase.database();
+                firebaseReady = true;
+                document.getElementById('status').textContent = 'Firebase подключён';
+                document.getElementById('join-btn').disabled = false;
+                initApp();
+            } catch (err) {
+                console.error('Ошибка загрузки config.json:', err);
+                document.getElementById('status').textContent = 'Не удалось загрузить конфигурацию.';
+            }
+        }
+
+        function initApp() {
+            userId = localStorage.getItem('voiceMsgUserId');
+            if (!userId) {
+                userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('voiceMsgUserId', userId);
+            }
+            displayName = localStorage.getItem('voiceMsgDisplayName') || '';
+            document.getElementById('display-name').value = displayName;
+
+            setupDeviceSelection();
+
+            document.getElementById('join-btn').addEventListener('click', joinChat);
+            document.getElementById('send-btn').addEventListener('click', sendTextMessage);
+            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendTextMessage();
+            });
+            document.getElementById('record-btn').addEventListener('click', openRecordModal);
+            document.getElementById('mute-mic-btn').addEventListener('click', toggleMuteMic);
+            document.getElementById('volume').addEventListener('input', (e) => {
+                playbackVolume = e.target.value / 100;
+                document.getElementById('volume-label').textContent = e.target.value + '%';
+                applyVolumeToAllAudio();
+            });
+
+            document.getElementById('stop-record-btn').addEventListener('click', stopRecording);
+            document.getElementById('add-cut-btn').addEventListener('click', addCutMark);
+            document.getElementById('re-record-btn').addEventListener('click', reRecord);
+            document.getElementById('send-record-btn').addEventListener('click', sendRecordedMessage);
+            document.getElementById('close-modal-btn').addEventListener('click', closeRecordModal);
+            document.getElementById('play-pause-btn').addEventListener('click', togglePlayPause);
+            document.getElementById('playback-volume').addEventListener('input', (e) => {
+                if (playbackGainNode) {
+                    playbackGainNode.gain.value = e.target.value / 100;
+                }
+                document.getElementById('volume-percent').textContent = e.target.value + '%';
+            });
+
+            const waveformCanvas = document.getElementById('waveform-canvas');
+            waveformCanvas.addEventListener('mousedown', onWaveformMouseDown);
+            waveformCanvas.addEventListener('mousemove', onWaveformMouseMove);
+            waveformCanvas.addEventListener('mouseup', onWaveformMouseUp);
+            waveformCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            document.getElementById('merge-btn').addEventListener('click', toggleMergeMode);
+            document.getElementById('cancel-merge-btn').addEventListener('click', cancelMerge);
+            document.getElementById('confirm-merge-btn').addEventListener('click', confirmMerge);
+
+            document.getElementById('messages-container').addEventListener('click', (e) => {
+                if (mergeModeActive) {
+                    const voiceMsg = e.target.closest('.voice-message');
+                    if (voiceMsg) {
+                        toggleSelectVoiceMessage(voiceMsg);
+                    }
+                }
+            });
+
+            // Кнопка удаления всех сообщений
+            document.getElementById('delete-all-btn').addEventListener('click', deleteAllMessages);
+        }
+
+        // ==================== УДАЛЕНИЕ ВСЕХ СООБЩЕНИЙ ====================
+        function deleteAllMessages() {
+            if (!db) return;
+            if (!confirm('Вы уверены, что хотите удалить ВСЕ сообщения (текстовые и голосовые) из базы данных? Отменить будет невозможно.')) return;
+            // Удаляем все текстовые сообщения
+            db.ref('messages').remove()
+                .then(() => {
+                    console.log('Все текстовые сообщения удалены');
+                })
+                .catch(err => {
+                    console.error('Ошибка удаления текстовых сообщений:', err);
+                    alert('Ошибка при удалении текстовых сообщений');
+                });
+            // Удаляем все голосовые сообщения
+            db.ref('voiceMessages').remove()
+                .then(() => {
+                    console.log('Все голосовые сообщения удалены');
+                    // Очищаем контейнер сообщений в UI (на случай, если child_removed не сработает)
+                    // Но благодаря слушателям child_removed они удалятся автоматически
+                })
+                .catch(err => {
+                    console.error('Ошибка удаления голосовых сообщений:', err);
+                    alert('Ошибка при удалении голосовых сообщений');
+                });
+        }
+
+        async function joinChat() {
+            const name = document.getElementById('display-name').value.trim();
+            if (!name) return alert('Введите имя');
+            displayName = name;
+            localStorage.setItem('voiceMsgDisplayName', displayName);
+            document.getElementById('join-btn').disabled = true;
+            document.getElementById('status').textContent = 'Подключение...';
+
+            const userRef = db.ref('users/' + userId);
+            await userRef.set({ name: displayName, connected: true, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            userRef.onDisconnect().remove();
+
+            db.ref('users').on('value', snapshot => {
+                renderUsers(snapshot.val());
+            });
+
+            // Подписка на добавление текстовых сообщений
+            db.ref('messages').on('child_added', snapshot => {
+                const msg = snapshot.val();
+                addTextMessageToUI(msg, snapshot.key);
+            });
+            // Подписка на удаление текстовых сообщений
+            db.ref('messages').on('child_removed', snapshot => {
+                removeMessageFromUI(snapshot.key);
+            });
+
+            // Подписка на добавление голосовых сообщений
+            db.ref('voiceMessages').on('child_added', snapshot => {
+                const voiceMsg = snapshot.val();
+                addVoiceMessageToUI(voiceMsg, snapshot.key);
+            });
+            // Подписка на удаление голосовых сообщений
+            db.ref('voiceMessages').on('child_removed', snapshot => {
+                removeMessageFromUI(snapshot.key);
+            });
+
+            await setupMicrophone();
+
+            document.getElementById('status').textContent = `Вы подключены как ${displayName}`;
+        }
+
+        // ==================== УДАЛЕНИЕ ЭЛЕМЕНТА ИЗ UI ПО КЛЮЧУ ====================
+        function removeMessageFromUI(key) {
+            const container = document.getElementById('messages-container');
+            const element = container.querySelector(`[data-key="${key}"]`);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        // ==================== ДОБАВЛЕНИЕ ТЕКСТОВЫХ СООБЩЕНИЙ ====================
+        function addTextMessageToUI(msg, key) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.dataset.key = key; // Сохраняем ключ для удаления
+            const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '';
+            div.innerHTML = `<span class="author">${escapeHtml(msg.author || 'Unknown')}:</span> ${escapeHtml(msg.text)} <span class="time">${time}</span>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ==================== ДОБАВЛЕНИЕ ГОЛОСОВЫХ СООБЩЕНИЙ ====================
+        function addVoiceMessageToUI(voiceMsg, key) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            div.className = 'voice-message';
+            div.dataset.key = key; // Сохраняем ключ для удаления
+            div.dataset.base64 = voiceMsg.audioBase64;
+            div.dataset.mimeType = voiceMsg.mimeType || 'audio/webm';
+            if (voiceMsg.label) {
+                const labelSpan = document.createElement('span');
+                labelSpan.className = 'label';
+                labelSpan.textContent = voiceMsg.label + ' ';
+                labelSpan.style.color = '#ffd700';
+                div.appendChild(labelSpan);
+            }
+            const authorSpan = document.createElement('span');
+            authorSpan.className = 'author';
+            authorSpan.textContent = voiceMsg.author + ': ';
+            div.appendChild(authorSpan);
+
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = `data:${voiceMsg.mimeType || 'audio/webm'};base64,${voiceMsg.audioBase64}`;
+            audio.volume = playbackVolume;
+            div.appendChild(audio);
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ... (остальной код без изменений, кроме уже внесённых правок)
+        // В целях экономии места, остальной код (управление микрофоном, запись, визуализация, объединение и т.д.)
+        // остаётся точно таким же, как в исходном примере. Ниже я приведу его полностью для целостности.
+
+        // ==================== ОСТАЛЬНЫЕ ФУНКЦИИ (копия из исходного кода) ====================
+        async function setupMicrophone() {
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                if (microphoneSource) {
+                    microphoneSource.disconnect();
+                    microphoneSource = null;
+                }
+                if (analyserNode) {
+                    analyserNode.disconnect();
+                    analyserNode = null;
+                }
+
+                const micSelect = document.getElementById('mic-select');
+                const constraints = {
+                    audio: micSelect.value ? { deviceId: { exact: micSelect.value } } : true,
+                    video: false
+                };
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                localStream.getAudioTracks().forEach(track => track.enabled = !isMicMuted);
+                document.getElementById('record-btn').disabled = false;
+
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                analyserNode = audioContext.createAnalyser();
+                analyserNode.fftSize = 256;
+                microphoneSource = audioContext.createMediaStreamSource(localStream);
+                microphoneSource.connect(analyserNode);
+                dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+                startVolumeIndicator();
+                console.log('Микрофон готов');
+            } catch (err) {
+                console.error('Ошибка доступа к микрофону:', err);
+                alert('Не удалось получить доступ к микрофону: ' + err.message);
+            }
+        }
+
+        function startVolumeIndicator() {
+            if (volumeAnimationId) cancelAnimationFrame(volumeAnimationId);
+            function updateLevel() {
+                if (analyserNode && dataArray) {
+                    analyserNode.getByteTimeDomainData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const val = (dataArray[i] - 128) / 128;
+                        sum += val * val;
+                    }
+                    const rms = Math.sqrt(sum / dataArray.length);
+                    const level = Math.min(100, Math.round(rms * 200));
+                    document.getElementById('mic-level-bar').style.width = level + '%';
+                }
+                volumeAnimationId = requestAnimationFrame(updateLevel);
+            }
+            updateLevel();
+        }
+
+        function stopVolumeIndicator() {
+            if (volumeAnimationId) {
+                cancelAnimationFrame(volumeAnimationId);
+                volumeAnimationId = null;
+            }
+        }
+
+        function toggleMuteMic() {
+            isMicMuted = !isMicMuted;
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => track.enabled = !isMicMuted);
+            }
+            document.getElementById('mute-mic-btn').textContent = isMicMuted ? '🎤 Unmute Mic' : '🎤 Mute Mic';
+            document.getElementById('mute-mic-btn').style.background = isMicMuted ? 'var(--danger)' : 'var(--accent)';
+        }
+
+        function openRecordModal() {
+            if (!localStream) {
+                alert('Сначала подключитесь к чату');
+                return;
+            }
+            recordedBlob = null;
+            recordedUrl = null;
+            cutMarks = [];
+            recordedSamples = [];
+            recordedAudioBuffer = null;
+            waveformData = [];
+            isPlaying = false;
+            playbackCurrentTime = 0;
+            playbackDuration = 0;
+            document.getElementById('record-preview').style.display = 'none';
+            document.getElementById('stop-record-btn').style.display = 'block';
+            document.getElementById('record-modal').style.display = 'flex';
+            document.getElementById('record-visualizer').getContext('2d').clearRect(0, 0, 600, 100);
+            document.getElementById('waveform-canvas').getContext('2d').clearRect(0, 0, canvasWidth, canvasHeight);
+            if (playbackGainNode) playbackGainNode.disconnect();
+            playbackGainNode = audioContext.createGain();
+            playbackGainNode.connect(audioContext.destination);
+            document.getElementById('record-visualizer').style.display = 'block';
+            startRecording();
+        }
+
+        function startRecording() {
+            audioChunks = [];
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            mediaRecorder = new MediaRecorder(localStream, { mimeType: mimeType });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                recordedBlob = new Blob(audioChunks, { type: mimeType });
+                recordedUrl = URL.createObjectURL(recordedBlob);
+                try {
+                    const arrayBuffer = await recordedBlob.arrayBuffer();
+                    recordedAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    playbackDuration = recordedAudioBuffer.duration;
+                    buildWaveform();
+                    drawWaveformCanvas();
+                    document.getElementById('total-duration').textContent = formatTime(playbackDuration);
+                } catch (err) {
+                    console.error('Ошибка декодирования аудио:', err);
+                    alert('Не удалось декодировать запись');
+                }
+                document.getElementById('record-preview').style.display = 'block';
+                document.getElementById('stop-record-btn').style.display = 'none';
+                stopRecordVisualization();
+                document.getElementById('record-visualizer').style.display = 'none';
+                playbackCurrentTime = 0;
+                drawWaveformCanvas();
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            document.getElementById('record-visualizer').style.display = 'block';
+            startRecordVisualization();
+
+            setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, 15000);
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+        }
+
+        function reRecord() {
+            if (isPlaying) {
+                togglePlayPause();
+            }
+            recordedBlob = null;
+            recordedUrl = null;
+            cutMarks = [];
+            recordedSamples = [];
+            recordedAudioBuffer = null;
+            waveformData = [];
+            document.getElementById('record-preview').style.display = 'none';
+            document.getElementById('stop-record-btn').style.display = 'block';
+            document.getElementById('record-visualizer').style.display = 'block';
+            document.getElementById('record-visualizer').getContext('2d').clearRect(0, 0, 600, 100);
+            document.getElementById('waveform-canvas').getContext('2d').clearRect(0, 0, canvasWidth, canvasHeight);
+            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+            recordedUrl = null;
+            startRecording();
+        }
+
+        function closeRecordModal() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            if (isPlaying) {
+                togglePlayPause();
+            }
+            stopRecordVisualization();
+            document.getElementById('record-modal').style.display = 'none';
+            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+            recordedBlob = null;
+            recordedUrl = null;
+            cutMarks = [];
+            recordedAudioBuffer = null;
+        }
+
+        function startRecordVisualization() {
+            const canvas = document.getElementById('record-visualizer');
+            const ctx = canvas.getContext('2d');
+            recordedSamples = [];
+            function draw() {
+                if (!isRecording) return;
+                if (analyserNode && dataArray) {
+                    analyserNode.getByteTimeDomainData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        const val = (dataArray[i] - 128) / 128;
+                        sum += val * val;
+                    }
+                    const rms = Math.sqrt(sum / dataArray.length);
+                    recordedSamples.push(rms);
+                    if (recordedSamples.length > 300) recordedSamples.shift();
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#6c63ff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const step = canvas.width / 300;
+                for (let i = 0; i < recordedSamples.length; i++) {
+                    const x = canvas.width - (recordedSamples.length - i) * step;
+                    const y = canvas.height / 2 - recordedSamples[i] * canvas.height * 0.8;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                recordAnimationId = requestAnimationFrame(draw);
+            }
+            recordAnimationId = requestAnimationFrame(draw);
+        }
+
+        function stopRecordVisualization() {
+            if (recordAnimationId) {
+                cancelAnimationFrame(recordAnimationId);
+                recordAnimationId = null;
+            }
+        }
+
+        function buildWaveform() {
+            if (!recordedAudioBuffer) return;
+            const channelData = recordedAudioBuffer.getChannelData(0);
+            const samplesPerPixel = Math.floor(channelData.length / canvasWidth);
+            waveformData = [];
+            for (let i = 0; i < canvasWidth; i++) {
+                let max = 0;
+                const start = i * samplesPerPixel;
+                const end = Math.min(start + samplesPerPixel, channelData.length);
+                for (let j = start; j < end; j++) {
+                    const val = Math.abs(channelData[j]);
+                    if (val > max) max = val;
+                }
+                waveformData.push(max);
+            }
+            const maxVal = Math.max(...waveformData);
+            if (maxVal > 0) {
+                waveformData = waveformData.map(v => v / maxVal);
+            } else {
+                waveformData = waveformData.map(() => 0);
+            }
+        }
+
+        function drawWaveformCanvas() {
+            const canvas = document.getElementById('waveform-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            const midY = canvasHeight / 2;
+            const amplitude = canvasHeight * 0.4;
+            ctx.strokeStyle = '#6c63ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < canvasWidth; x++) {
+                const y = midY - waveformData[x] * amplitude;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            cutMarks.forEach((mark, index) => {
+                const x = (mark / playbackDuration) * canvasWidth;
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, 10);
+                ctx.lineTo(x, canvasHeight - 10);
+                ctx.stroke();
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.moveTo(x, 10);
+                ctx.lineTo(x - 6, 0);
+                ctx.lineTo(x + 6, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Arial';
+                ctx.fillText(index + 1, x + 4, 14);
+            });
+
+            const playheadX = (playbackCurrentTime / playbackDuration) * canvasWidth;
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(playheadX, 0);
+            ctx.lineTo(playheadX, canvasHeight);
+            ctx.stroke();
+        }
+
+        function getCanvasCoords(e) {
+            const canvas = e.target;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            return { x, y };
+        }
+
+        function togglePlayPause() {
+            if (!recordedAudioBuffer) return;
+            if (isPlaying) {
+                if (audioSourceNode) {
+                    audioSourceNode.stop();
+                    audioSourceNode.disconnect();
+                    audioSourceNode = null;
+                }
+                isPlaying = false;
+                document.getElementById('play-pause-btn').textContent = '▶️';
+                playbackCurrentTime = audioContext.currentTime - playbackStartTime;
+                drawWaveformCanvas();
+            } else {
+                if (playbackCurrentTime >= playbackDuration) {
+                    playbackCurrentTime = 0;
+                }
+                audioSourceNode = audioContext.createBufferSource();
+                audioSourceNode.buffer = recordedAudioBuffer;
+                audioSourceNode.connect(playbackGainNode);
+                audioSourceNode.onended = () => {
+                    if (isPlaying) {
+                        isPlaying = false;
+                        document.getElementById('play-pause-btn').textContent = '▶️';
+                        playbackCurrentTime = 0;
+                        drawWaveformCanvas();
+                    }
+                };
+                audioSourceNode.start(0, playbackCurrentTime);
+                playbackStartTime = audioContext.currentTime - playbackCurrentTime;
+                isPlaying = true;
+                document.getElementById('play-pause-btn').textContent = '⏸️';
+                updatePlaybackTime();
+            }
+        }
+
+        function updatePlaybackTime() {
+            if (!isPlaying) return;
+            playbackCurrentTime = audioContext.currentTime - playbackStartTime;
+            document.getElementById('current-time').textContent = formatTime(playbackCurrentTime);
+            drawWaveformCanvas();
+            if (playbackCurrentTime >= playbackDuration) {
+                if (isPlaying) {
+                    isPlaying = false;
+                    document.getElementById('play-pause-btn').textContent = '▶️';
+                    playbackCurrentTime = 0;
+                    drawWaveformCanvas();
+                }
+                return;
+            }
+            requestAnimationFrame(updatePlaybackTime);
+        }
+
+        function formatTime(seconds) {
+            if (!isFinite(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function onWaveformMouseDown(e) {
+            if (!recordedAudioBuffer) return;
+            const { x, y } = getCanvasCoords(e);
+            const time = (x / canvasWidth) * playbackDuration;
+
+            let foundIndex = -1;
+            cutMarks.forEach((mark, index) => {
+                const markX = (mark / playbackDuration) * canvasWidth;
+                if (Math.abs(x - markX) < 8) {
+                    foundIndex = index;
+                }
+            });
+
+            if (foundIndex >= 0) {
+                isDraggingCutMark = foundIndex;
+                dragOffset = x - (cutMarks[foundIndex] / playbackDuration) * canvasWidth;
+                e.preventDefault();
+            } else {
+                playbackCurrentTime = Math.max(0, Math.min(time, playbackDuration));
+                if (isPlaying) {
+                    if (audioSourceNode) {
+                        audioSourceNode.stop();
+                        audioSourceNode.disconnect();
+                        audioSourceNode = null;
+                    }
+                    audioSourceNode = audioContext.createBufferSource();
+                    audioSourceNode.buffer = recordedAudioBuffer;
+                    audioSourceNode.connect(playbackGainNode);
+                    audioSourceNode.onended = () => {
+                        if (isPlaying) {
+                            isPlaying = false;
+                            document.getElementById('play-pause-btn').textContent = '▶️';
+                            playbackCurrentTime = 0;
+                            drawWaveformCanvas();
+                        }
+                    };
+                    audioSourceNode.start(0, playbackCurrentTime);
+                    playbackStartTime = audioContext.currentTime - playbackCurrentTime;
+                }
+                drawWaveformCanvas();
+                document.getElementById('current-time').textContent = formatTime(playbackCurrentTime);
+            }
+        }
+
+        function onWaveformMouseMove(e) {
+            if (isDraggingCutMark >= 0) {
+                const { x } = getCanvasCoords(e);
+                const time = Math.max(0, Math.min((x - dragOffset) / canvasWidth * playbackDuration, playbackDuration));
+                cutMarks[isDraggingCutMark] = time;
+                drawWaveformCanvas();
+                e.preventDefault();
+            }
+        }
+
+        function onWaveformMouseUp(e) {
+            if (isDraggingCutMark >= 0) {
+                isDraggingCutMark = -1;
+            }
+        }
+
+        document.getElementById('waveform-canvas').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (!recordedAudioBuffer) return;
+            const { x } = getCanvasCoords(e);
+            let foundIndex = -1;
+            cutMarks.forEach((mark, index) => {
+                const markX = (mark / playbackDuration) * canvasWidth;
+                if (Math.abs(x - markX) < 8) {
+                    foundIndex = index;
+                }
+            });
+            if (foundIndex >= 0) {
+                cutMarks.splice(foundIndex, 1);
+                drawWaveformCanvas();
+            }
+        });
+
+        function addCutMark() {
+            if (!recordedAudioBuffer) return;
+            if (!cutMarks.some(t => Math.abs(t - playbackCurrentTime) < 0.1)) {
+                cutMarks.push(playbackCurrentTime);
+                drawWaveformCanvas();
+            }
+        }
+
+        async function sendRecordedMessage() {
+            if (!recordedBlob || !recordedAudioBuffer) return;
+            const duration = playbackDuration;
+            const marks = cutMarks.filter(t => t > 0 && t < duration).sort((a,b)=>a-b);
+            try {
+                const mainBase64 = await processAudioReverse(recordedBlob);
+                db.ref('voiceMessages').push({
+                    author: displayName,
+                    userId: userId,
+                    audioBase64: mainBase64,
+                    mimeType: 'audio/wav',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    label: ''
+                });
+
+                if (marks.length > 0) {
+                    const segments = [];
+                    let prev = 0;
+                    for (let i = 0; i < marks.length; i++) {
+                        segments.push({ start: prev, end: marks[i] });
+                        prev = marks[i];
+                    }
+                    segments.push({ start: prev, end: duration });
+                    for (let i = 0; i < segments.length; i++) {
+                        if (segments[i].end - segments[i].start < 0.05) continue;
+                        const partBase64 = await processAudioSegmentReverse(recordedBlob, segments[i].start, segments[i].end);
+                        db.ref('voiceMessages').push({
+                            author: displayName,
+                            userId: userId,
+                            audioBase64: partBase64,
+                            mimeType: 'audio/wav',
+                            timestamp: firebase.database.ServerValue.TIMESTAMP,
+                            label: `Часть ${i+1}`
+                        });
+                    }
+                }
+                closeRecordModal();
+            } catch (err) {
+                console.error('Ошибка обработки аудио:', err);
+                alert('Ошибка при обработке аудио');
+            }
+        }
+
+        async function processAudioReverse(blob) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const reversedBuffer = reverseAudioBuffer(audioBuffer);
+            return encodeWAV(reversedBuffer);
+        }
+
+        async function processAudioSegmentReverse(blob, startTime, endTime) {
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const segmentBuffer = extractSegment(audioBuffer, startTime, endTime);
+            const reversedBuffer = reverseAudioBuffer(segmentBuffer);
+            return encodeWAV(reversedBuffer);
+        }
+
+        function reverseAudioBuffer(buffer) {
+            const channels = buffer.numberOfChannels;
+            const length = buffer.length;
+            const newBuffer = audioContext.createBuffer(channels, length, buffer.sampleRate);
+            for (let ch = 0; ch < channels; ch++) {
+                const inputData = buffer.getChannelData(ch);
+                const outputData = newBuffer.getChannelData(ch);
+                for (let i = 0; i < length; i++) {
+                    outputData[i] = inputData[length - 1 - i];
+                }
+            }
+            return newBuffer;
+        }
+
+        function extractSegment(buffer, startTime, endTime) {
+            const sampleRate = buffer.sampleRate;
+            const startSample = Math.floor(startTime * sampleRate);
+            const endSample = Math.min(Math.floor(endTime * sampleRate), buffer.length);
+            const segmentLength = Math.max(0, endSample - startSample);
+            const newBuffer = audioContext.createBuffer(buffer.numberOfChannels, segmentLength, sampleRate);
+            for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                const inputData = buffer.getChannelData(ch);
+                const outputData = newBuffer.getChannelData(ch);
+                for (let i = 0; i < segmentLength; i++) {
+                    outputData[i] = inputData[startSample + i];
+                }
+            }
+            return newBuffer;
+        }
+
+        function encodeWAV(audioBuffer) {
+            const numChannels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const format = 1;
+            const bitsPerSample = 16;
+            const bytesPerSample = bitsPerSample / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = audioBuffer.length * blockAlign;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            let offset = 44;
+            for (let i = 0; i < audioBuffer.length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(ch)[i]));
+                    const val = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset, val, true);
+                    offset += 2;
+                }
+            }
+
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // ==================== ОБЪЕДИНЕНИЕ ГОЛОСОВЫХ ====================
+        function toggleMergeMode() {
+            mergeModeActive = !mergeModeActive;
+            const container = document.getElementById('messages-container');
+            if (mergeModeActive) {
+                container.classList.add('selecting');
+                document.getElementById('merge-controls').style.display = 'flex';
+                selectedVoiceMessages = [];
+                mergeSelectedData = [];
+                document.querySelectorAll('.voice-message').forEach(el => el.classList.remove('selected'));
+            } else {
+                container.classList.remove('selecting');
+                document.getElementById('merge-controls').style.display = 'none';
+                selectedVoiceMessages = [];
+                mergeSelectedData = [];
+                document.querySelectorAll('.voice-message').forEach(el => el.classList.remove('selected'));
+            }
+        }
+
+        function toggleSelectVoiceMessage(element) {
+            element.classList.toggle('selected');
+            if (element.classList.contains('selected')) {
+                selectedVoiceMessages.push(element);
+                mergeSelectedData.push({
+                    base64: element.dataset.base64,
+                    mimeType: element.dataset.mimeType
+                });
+            } else {
+                const index = selectedVoiceMessages.indexOf(element);
+                if (index > -1) {
+                    selectedVoiceMessages.splice(index, 1);
+                    mergeSelectedData.splice(index, 1);
+                }
+            }
+        }
+
+        function cancelMerge() {
+            toggleMergeMode();
+        }
+
+        async function confirmMerge() {
+            if (mergeSelectedData.length < 2) {
+                alert('Выберите хотя бы два голосовых сообщения для объединения');
+                return;
+            }
+            try {
+                const buffers = [];
+                for (const item of mergeSelectedData) {
+                    const arrayBuffer = base64ToArrayBuffer(item.base64);
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    buffers.push(audioBuffer);
+                }
+                const totalLength = buffers.reduce((sum, buf) => sum + buf.length, 0);
+                const sampleRate = buffers[0].sampleRate;
+                const channels = Math.max(...buffers.map(b => b.numberOfChannels));
+                const mergedBuffer = audioContext.createBuffer(channels, totalLength, sampleRate);
+                let offset = 0;
+                for (const buffer of buffers) {
+                    for (let ch = 0; ch < channels; ch++) {
+                        const inputData = buffer.getChannelData(ch);
+                        const outputData = mergedBuffer.getChannelData(ch);
+                        outputData.set(inputData, offset);
+                    }
+                    offset += buffer.length;
+                }
+                const wavBase64 = encodeWAV(mergedBuffer);
+                db.ref('voiceMessages').push({
+                    author: displayName,
+                    userId: userId,
+                    audioBase64: wavBase64,
+                    mimeType: 'audio/wav',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    label: 'Объединенное'
+                });
+                toggleMergeMode();
+            } catch (err) {
+                console.error('Ошибка объединения:', err);
+                alert('Ошибка при объединении аудио');
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const len = binary.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // ==================== ТЕКСТОВЫЕ СООБЩЕНИЯ ====================
+        function sendTextMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            db.ref('messages').push({
+                author: displayName,
+                userId: userId,
+                text: text,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            input.value = '';
+        }
+
+        function applyVolumeToAllAudio() {
+            const container = document.getElementById('messages-container');
+            container.querySelectorAll('audio').forEach(audio => {
+                audio.volume = playbackVolume;
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== ПОЛЬЗОВАТЕЛИ ====================
+        function renderUsers(users) {
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '';
+            if (!users) return;
+            Object.keys(users).forEach(id => {
+                if (users[id].connected) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="online-dot"></span>${escapeHtml(users[id].name)}${id === userId ? ' (вы)' : ''}`;
+                    usersList.appendChild(li);
+                }
+            });
+        }
+
+        // ==================== ВЫБОР УСТРОЙСТВ ====================
+        async function setupDeviceSelection() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const micSelect = document.getElementById('mic-select');
+                micSelect.innerHTML = '';
+                devices.forEach(device => {
+                    if (device.kind === 'audioinput') {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = device.label || 'Микрофон ' + (micSelect.length + 1);
+                        micSelect.appendChild(option);
+                    }
+                });
+                micSelect.addEventListener('change', () => {
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                    }
+                    stopVolumeIndicator();
+                    setupMicrophone();
+                });
+            } catch (err) {
+                console.error('Ошибка получения устройств:', err);
+            }
+        }
+
+        // ==================== ОЧИСТКА ====================
+        window.addEventListener('beforeunload', () => {
+            if (db) {
+                db.ref('users/' + userId).remove();
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            stopVolumeIndicator();
+            if (audioContext) audioContext.close();
+        });
+
+        // ==================== ЗАПУСК ====================
+        loadConfig();
+    </script>
+</body>
+</html>
